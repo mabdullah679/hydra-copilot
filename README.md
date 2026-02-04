@@ -1,13 +1,17 @@
 # Hydra Copilot
 
-Hydra Copilot helps teams handle messy work faster and more safely. You give it documents or outlines, and it returns **drafts plus a clear audit trail** so a human can quickly review and approve.
+Hydra Copilot is a helper for repetitive, document‑heavy work. It turns messy inputs into **clear draft outputs** and tells you **why** it made each decision, so a person can approve quickly and safely.
 
-It currently supports three real-world workflows:
-- **Invoices** → extract key fields, validate totals, and route for approval
-- **Contracts** → extract important clauses, flag risks, and route to legal review
-- **Marketing** → turn an outline into publishable draft copy that follows brand rules
+### What it helps with
+- **Invoices**: pulls key fields, checks totals, and routes for approval
+- **Contracts**: highlights important clauses, flags risks, and routes to legal review
+- **Marketing**: turns an outline into draft copy that follows your brand rules
 
-Every result is **draft-only**, with reasons for any escalations, so you can trust the process and improve it over time.
+### Why it’s useful
+- **Saves time** on first‑pass review
+- **Reduces mistakes** by catching validation issues
+- **Keeps humans in control** (everything is draft‑only)
+- **Creates an audit trail** you can trust and improve over time
 
 ## Start here
 - docs/README.md
