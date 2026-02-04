@@ -28,6 +28,9 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState<unknown>(null);
+  const [runs, setRuns] = useState<Array<Record<string, unknown>>>([]);
+  const [events, setEvents] = useState<Array<Record<string, unknown>>>([]);
+  const [feedbackHistory, setFeedbackHistory] = useState<Array<Record<string, unknown>>>([]);
 
   const [invoiceText, setInvoiceText] = useState(
     "vendor: Zeta LLC\ninvoice date: 2026-01-15\ndue date: 2026-02-15\ntotal: 2500\nline items total: 2400"
@@ -65,6 +68,48 @@ export default function Home() {
         ...init,
       });
       const data = await res.json();
+      setOutput(data);
+    } catch (err) {
+      setOutput({ error: String(err) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchRuns() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/runs?limit=20`);
+      const data = await res.json();
+      setRuns(data.runs ?? []);
+      setOutput(data);
+    } catch (err) {
+      setOutput({ error: String(err) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchEvents(runId: string) {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/runs/${runId}/events`);
+      const data = await res.json();
+      setEvents(data.events ?? []);
+      setOutput(data);
+    } catch (err) {
+      setOutput({ error: String(err) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchFeedback(runId: string) {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/feedback/${runId}`);
+      const data = await res.json();
+      setFeedbackHistory(data.feedback ?? []);
       setOutput(data);
     } catch (err) {
       setOutput({ error: String(err) });
@@ -120,12 +165,60 @@ export default function Home() {
                   title="Recent Runs"
                   subtitle="Pull the latest run statuses for quick inspection."
                 />
-                <button
-                  onClick={() => apiFetch("/runs?limit=20")}
-                  className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-                >
-                  Fetch runs
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={fetchRuns}
+                    className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+                  >
+                    Fetch runs
+                  </button>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-zinc-200">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-zinc-50 text-zinc-600">
+                      <tr>
+                        <th className="px-3 py-2">run_id</th>
+                        <th className="px-3 py-2">workflow</th>
+                        <th className="px-3 py-2">status</th>
+                        <th className="px-3 py-2">created</th>
+                        <th className="px-3 py-2">actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {runs.map((r) => (
+                        <tr key={r.run_id} className="border-t border-zinc-200">
+                          <td className="px-3 py-2 font-mono text-xs">{r.run_id}</td>
+                          <td className="px-3 py-2">{r.workflow}</td>
+                          <td className="px-3 py-2">{r.status}</td>
+                          <td className="px-3 py-2 text-xs">{r.created_at}</td>
+                          <td className="px-3 py-2">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => apiFetch(`/runs/${r.run_id}`)}
+                                className="rounded-md border border-zinc-200 px-2 py-1 text-xs"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() => fetchEvents(r.run_id)}
+                                className="rounded-md border border-zinc-200 px-2 py-1 text-xs"
+                              >
+                                Events
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {runs.length === 0 && (
+                        <tr>
+                          <td className="px-3 py-6 text-center text-zinc-500" colSpan={5}>
+                            No runs yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
@@ -307,9 +400,62 @@ export default function Home() {
                 >
                   Submit feedback
                 </button>
+                <button
+                  onClick={() => fetchFeedback(feedbackRunId)}
+                  className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium"
+                >
+                  Load feedback history
+                </button>
+                <div className="rounded-xl border border-zinc-200 p-3 text-xs text-zinc-700">
+                  {feedbackHistory.length === 0 ? (
+                    <div className="text-zinc-500">No feedback history loaded.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {feedbackHistory.map((fb, idx) => (
+                        <div key={idx} className="rounded-lg border border-zinc-200 p-2">
+                          <div>
+                            <span className="font-semibold">{fb.decision}</span>{" "}
+                            <span className="text-zinc-500">({fb.reason_code || "no_reason"})</span>
+                          </div>
+                          <div className="text-zinc-500">{fb.notes}</div>
+                          <div className="text-[10px] text-zinc-400">{fb.created_at}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </motion.div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <SectionTitle title="Timeline" subtitle="Ordered audit events for the last selected run." />
+            <div className="mt-4 space-y-3 text-sm">
+              {events.length === 0 ? (
+                <p className="text-zinc-500">No events loaded. Use “Events” on a run.</p>
+              ) : (
+                events.map((ev, idx) => (
+                  <div key={idx} className="rounded-xl border border-zinc-200 p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs">{ev.step}</span>
+                      <span className="text-xs text-zinc-500">{ev.ts}</span>
+                      <span className="text-xs text-zinc-500">{ev.tool}</span>
+                      <span className="text-xs text-zinc-500">{ev.decision}</span>
+                    </div>
+                    {ev.meta && (
+                      <div className="mt-2 text-xs text-zinc-600">
+                        {Object.entries(ev.meta).map(([k, v]) => (
+                          <div key={k}>
+                            <span className="font-medium">{k}:</span> {String(v)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
             <SectionTitle title="Output" subtitle={loading ? "Loading..." : "Latest response from the API"} />
