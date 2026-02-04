@@ -6,11 +6,12 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 
-from .db import init_db, insert_event, insert_run, get_run, utc_now
+from .db import init_db, insert_event, insert_run, get_run, get_events, utc_now
 from .schemas import (
     ContractRequest,
     InvoiceRequest,
     MarketingRequest,
+    EventsResponse,
     RunResponse,
     SubmitResponse,
 )
@@ -73,3 +74,12 @@ def get_run_status(run_id: str) -> RunResponse:
         result=result,
         audit=audit,
     )
+
+
+@app.get("/runs/{run_id}/events", response_model=EventsResponse)
+def get_run_events(run_id: str) -> EventsResponse:
+    run = get_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="run_id not found")
+    events = get_events(run_id)
+    return EventsResponse(run_id=run_id, events=events)

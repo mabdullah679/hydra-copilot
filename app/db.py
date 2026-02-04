@@ -144,3 +144,13 @@ def get_run(run_id: str) -> Optional[Dict[str, Any]]:
     if not row:
         return None
     return dict(row)
+
+
+def get_events(run_id: str) -> list[Dict[str, Any]]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT ts, step, tool, decision, elapsed_ms, error FROM events WHERE run_id = ? ORDER BY id ASC",
+        (run_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]

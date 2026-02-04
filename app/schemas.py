@@ -61,3 +61,8 @@ class RunResponse(BaseModel):
     status: str
     result: Optional[Dict[str, Any]] = None
     audit: Optional[Audit] = None
+
+
+class EventsResponse(BaseModel):
+    run_id: str
+    events: List[AuditEvent]
