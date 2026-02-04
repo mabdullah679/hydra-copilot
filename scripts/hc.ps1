@@ -16,7 +16,7 @@ Hydra Copilot commands:
   hc dev       - start API (uvicorn)
   hc worker    - start Celery worker (Windows-safe solo pool)
   hc redis     - start Redis via Docker
-  hc smoke     - submit a marketing request + print JSON
+  hc smoke     - interactive smoke menu
   hc test      - run pytest
 "@ | Write-Host
   }
