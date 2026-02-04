@@ -8,6 +8,8 @@ from typing import Any, Dict, Optional
 
 from .config import DB_PATH, DATA_DIR, BLOB_DIR
 
+_initialized = False
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -18,15 +20,7 @@ def ensure_dirs() -> None:
     Path(BLOB_DIR).mkdir(parents=True, exist_ok=True)
 
 
-def get_conn() -> sqlite3.Connection:
-    ensure_dirs()
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_db() -> None:
-    conn = get_conn()
+def _ensure_schema(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
     cur.execute(
         """
@@ -58,6 +52,22 @@ def init_db() -> None:
         """
     )
     conn.commit()
+
+
+def get_conn() -> sqlite3.Connection:
+    global _initialized
+    ensure_dirs()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    if not _initialized:
+        _ensure_schema(conn)
+        _initialized = True
+    return conn
+
+
+def init_db() -> None:
+    conn = get_conn()
+    _ensure_schema(conn)
     conn.close()
 
 
