@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 from ..db import utc_now
+from ..tools.marketing_tools import generate_marketing_variants, run_brand_checks
 
 
 def run_marketing_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
@@ -19,13 +20,11 @@ def run_marketing_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any]
         }
     )
 
-    variants = [
-        {
-            "title": "Draft headline",
-            "body": "Draft body copy aligned to brand rules.",
-            "cta": "Learn more",
-        }
-    ]
+    variants = generate_marketing_variants(
+        payload.get("outline", ""),
+        payload.get("persona"),
+        payload.get("channel", "landing_page"),
+    )
 
     events.append(
         {
@@ -38,15 +37,7 @@ def run_marketing_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any]
         }
     )
 
-    checks = [
-        {"rule": "no_profanity_or_slurs", "ok": True},
-        {"rule": "no_sensitive_or_political", "ok": True},
-        {"rule": "no_hype_or_guarantees", "ok": True},
-        {"rule": "no_competitor_mentions", "ok": True},
-        {"rule": "regulated_claims_blocked", "ok": True},
-        {"rule": "pricing_disclaimer_if_needed", "ok": True},
-        {"rule": "channel_limits_ok", "ok": True},
-    ]
+    checks = run_brand_checks()
 
     events.append(
         {

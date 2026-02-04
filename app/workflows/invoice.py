@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
 from ..config import INVOICE_MANAGER_THRESHOLD
 from ..db import utc_now
+from ..tools.invoice_tools import extract_invoice_fields, validate_invoice
+from ..tools.ocr_stub import ocr_stub
 
 
 def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
@@ -21,15 +22,8 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
         }
     )
 
-    extracted = {
-        "vendor": "ACME Corp",
-        "invoice_number": None,
-        "invoice_date": "2026-01-01",
-        "due_date": "2026-02-01",
-        "total": 1234.56,
-        "line_items_total": 1234.56,
-        "currency": "USD",
-    }
+    ocr_text = ocr_stub(payload.get("document", {}))
+    extracted = extract_invoice_fields(ocr_text, payload.get("metadata") or {})
 
     events.append(
         {
@@ -42,15 +36,7 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
         }
     )
 
-    total_validator_ok = isinstance(extracted["total"], (int, float))
-    due_ok = datetime.fromisoformat(extracted["due_date"]) >= datetime.fromisoformat(extracted["invoice_date"])
-    total_matches_ok = abs(extracted["total"] - extracted["line_items_total"]) < 0.01
-
-    validations = [
-        {"rule": "total_validator", "ok": total_validator_ok},
-        {"rule": "due_date_after_invoice_date", "ok": due_ok},
-        {"rule": "total_matches_line_items", "ok": total_matches_ok},
-    ]
+    validations, validation_failed = validate_invoice(extracted)
 
     events.append(
         {
@@ -63,7 +49,6 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
         }
     )
 
-    validation_failed = any(v["ok"] is False for v in validations)
     if validation_failed:
         route = {"queue": "ap-exceptions", "reason": "validation_failed"}
     elif extracted["total"] >= INVOICE_MANAGER_THRESHOLD:

@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 from ..db import utc_now
+from ..tools.contract_tools import extract_contract_clauses, flag_contract_risks
+from ..tools.ocr_stub import ocr_stub
 
 
 def run_contract_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
@@ -19,17 +21,8 @@ def run_contract_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any],
         }
     )
 
-    clauses = {
-        "parties": "Party A and Party B",
-        "term_and_renewal": "12 months, auto-renewal",
-        "termination": "30 days notice",
-        "payment": "Net 30",
-        "confidentiality": "Standard NDA terms",
-        "liability": "Capped at fees paid",
-        "indemnification": "Mutual indemnity",
-        "governing_law": "California",
-        "data_processing": "DPA attached",
-    }
+    ocr_text = ocr_stub(payload.get("document", {}))
+    clauses = extract_contract_clauses(ocr_text)
 
     events.append(
         {
@@ -42,10 +35,7 @@ def run_contract_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any],
         }
     )
 
-    risk_flags: List[Dict[str, Any]] = []
-    forced = (payload.get("metadata") or {}).get("force_risks") or []
-    for flag in forced:
-        risk_flags.append({"type": flag, "severity": "high"})
+    risk_flags = flag_contract_risks(payload.get("metadata") or {})
 
     events.append(
         {
