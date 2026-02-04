@@ -1,11 +1,38 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
 
 type Tab = "dashboard" | "invoice" | "contract" | "marketing" | "feedback";
+
+type RunRow = {
+  run_id: string;
+  workflow: string;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type EventRow = {
+  ts: string;
+  step: string;
+  tool?: string | null;
+  decision?: string | null;
+  elapsed_ms?: number | null;
+  error?: string | null;
+  meta?: Record<string, unknown> | null;
+};
+
+type FeedbackRow = {
+  run_id: string;
+  workflow: string;
+  decision: string;
+  reason_code?: string | null;
+  notes?: string | null;
+  created_at: string;
+};
 
 function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -18,19 +45,30 @@ function SectionTitle({ title, subtitle }: { title: string; subtitle?: string })
 
 function JsonBlock({ data }: { data: unknown }) {
   return (
-    <pre className="max-h-[420px] overflow-auto rounded-xl bg-zinc-900 p-4 text-xs text-zinc-100">
+    <pre className="max-h-[360px] overflow-auto rounded-xl bg-zinc-900 p-4 text-xs text-zinc-100">
       {JSON.stringify(data, null, 2)}
     </pre>
   );
 }
 
+function StatusBadge({ status }: { status: string }) {
+  const base = "rounded-full px-2 py-0.5 text-xs font-medium";
+  if (status === "needs_review") return <span className={`${base} bg-amber-100 text-amber-800`}>{status}</span>;
+  if (status === "processing") return <span className={`${base} bg-blue-100 text-blue-800`}>{status}</span>;
+  if (status === "failed") return <span className={`${base} bg-red-100 text-red-800`}>{status}</span>;
+  return <span className={`${base} bg-zinc-100 text-zinc-700`}>{status}</span>;
+}
+
 export default function Home() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [output, setOutput] = useState<unknown>(null);
-  const [runs, setRuns] = useState<Array<Record<string, unknown>>>([]);
-  const [events, setEvents] = useState<Array<Record<string, unknown>>>([]);
-  const [feedbackHistory, setFeedbackHistory] = useState<Array<Record<string, unknown>>>([]);
+
+  const [runs, setRuns] = useState<RunRow[]>([]);
+  const [selectedRun, setSelectedRun] = useState<RunRow | null>(null);
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [feedbackHistory, setFeedbackHistory] = useState<FeedbackRow[]>([]);
 
   const [invoiceText, setInvoiceText] = useState(
     "vendor: Zeta LLC\ninvoice date: 2026-01-15\ndue date: 2026-02-15\ntotal: 2500\nline items total: 2400"
@@ -43,11 +81,9 @@ export default function Home() {
   const [marketingOutline, setMarketingOutline] = useState("Launch message");
   const [marketingPersona, setMarketingPersona] = useState("busy founder");
   const [marketingChannel, setMarketingChannel] = useState("email");
-  const [feedbackRunId, setFeedbackRunId] = useState("");
   const [feedbackDecision, setFeedbackDecision] = useState("approved");
   const [feedbackReason, setFeedbackReason] = useState("meets_brand");
   const [feedbackNotes, setFeedbackNotes] = useState("Looks good");
-  const [runIdLookup, setRunIdLookup] = useState("");
 
   const tabButtons = useMemo(
     () => [
@@ -62,61 +98,60 @@ export default function Home() {
 
   async function apiFetch(path: string, init?: RequestInit) {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`${API_BASE}${path}`, {
         headers: { "Content-Type": "application/json" },
         ...init,
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setOutput(data);
+      return data;
     } catch (err) {
-      setOutput({ error: String(err) });
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      setOutput({ error: message });
+      return null;
     } finally {
       setLoading(false);
     }
   }
 
   async function fetchRuns() {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/runs?limit=20`);
-      const data = await res.json();
-      setRuns(data.runs ?? []);
-      setOutput(data);
-    } catch (err) {
-      setOutput({ error: String(err) });
-    } finally {
-      setLoading(false);
-    }
+    const data = await apiFetch("/runs?limit=20");
+    if (data?.runs) setRuns(data.runs);
   }
 
-  async function fetchEvents(runId: string) {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/runs/${runId}/events`);
-      const data = await res.json();
-      setEvents(data.events ?? []);
-      setOutput(data);
-    } catch (err) {
-      setOutput({ error: String(err) });
-    } finally {
-      setLoading(false);
-    }
+  async function selectRun(run: RunRow) {
+    setSelectedRun(run);
+    const [eventsResp, feedbackResp] = await Promise.all([
+      apiFetch(`/runs/${run.run_id}/events`),
+      apiFetch(`/feedback/${run.run_id}`),
+    ]);
+    setEvents(eventsResp?.events ?? []);
+    setFeedbackHistory(feedbackResp?.feedback ?? []);
   }
 
-  async function fetchFeedback(runId: string) {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/feedback/${runId}`);
-      const data = await res.json();
-      setFeedbackHistory(data.feedback ?? []);
-      setOutput(data);
-    } catch (err) {
-      setOutput({ error: String(err) });
-    } finally {
-      setLoading(false);
-    }
+  async function postFeedback() {
+    if (!selectedRun) return;
+    await apiFetch("/feedback", {
+      method: "POST",
+      body: JSON.stringify({
+        run_id: selectedRun.run_id,
+        workflow: selectedRun.workflow,
+        decision: feedbackDecision,
+        reason_code: feedbackReason,
+        notes: feedbackNotes,
+      }),
+    });
+    await selectRun(selectedRun);
   }
+
+  useEffect(() => {
+    fetchRuns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white text-zinc-900">
@@ -163,15 +198,17 @@ export default function Home() {
               <div className="space-y-6">
                 <SectionTitle
                   title="Recent Runs"
-                  subtitle="Pull the latest run statuses for quick inspection."
+                  subtitle="Runs auto‑load. Click a row to inspect."
                 />
                 <div className="flex items-center gap-3">
                   <button
                     onClick={fetchRuns}
                     className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
                   >
-                    Fetch runs
+                    Refresh runs
                   </button>
+                  {loading && <span className="text-xs text-zinc-500">Loading…</span>}
+                  {error && <span className="text-xs text-red-600">Error: {error}</span>}
                 </div>
                 <div className="overflow-hidden rounded-xl border border-zinc-200">
                   <table className="w-full text-left text-sm">
@@ -181,37 +218,28 @@ export default function Home() {
                         <th className="px-3 py-2">workflow</th>
                         <th className="px-3 py-2">status</th>
                         <th className="px-3 py-2">created</th>
-                        <th className="px-3 py-2">actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {runs.map((r) => (
-                        <tr key={r.run_id} className="border-t border-zinc-200">
+                        <tr
+                          key={r.run_id}
+                          className={`border-t border-zinc-200 cursor-pointer ${
+                            selectedRun?.run_id === r.run_id ? "bg-zinc-50" : "hover:bg-zinc-50"
+                          }`}
+                          onClick={() => selectRun(r)}
+                        >
                           <td className="px-3 py-2 font-mono text-xs">{r.run_id}</td>
                           <td className="px-3 py-2">{r.workflow}</td>
-                          <td className="px-3 py-2">{r.status}</td>
-                          <td className="px-3 py-2 text-xs">{r.created_at}</td>
                           <td className="px-3 py-2">
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => apiFetch(`/runs/${r.run_id}`)}
-                                className="rounded-md border border-zinc-200 px-2 py-1 text-xs"
-                              >
-                                View
-                              </button>
-                              <button
-                                onClick={() => fetchEvents(r.run_id)}
-                                className="rounded-md border border-zinc-200 px-2 py-1 text-xs"
-                              >
-                                Events
-                              </button>
-                            </div>
+                            <StatusBadge status={r.status} />
                           </td>
+                          <td className="px-3 py-2 text-xs">{r.created_at}</td>
                         </tr>
                       ))}
                       {runs.length === 0 && (
                         <tr>
-                          <td className="px-3 py-6 text-center text-zinc-500" colSpan={5}>
+                          <td className="px-3 py-6 text-center text-zinc-500" colSpan={4}>
                             No runs yet.
                           </td>
                         </tr>
@@ -249,7 +277,7 @@ export default function Home() {
                         document: { content_base64: invoiceText, content_type: "text/plain" },
                         metadata: { force_validation_fail: invoiceForceFail },
                       }),
-                    })
+                    }).then(fetchRuns)
                   }
                   className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
                 >
@@ -297,7 +325,7 @@ export default function Home() {
                         document: { content_base64: contractText, content_type: "text/plain" },
                         metadata: { force_risks: contractRisks },
                       }),
-                    })
+                    }).then(fetchRuns)
                   }
                   className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
                 >
@@ -342,7 +370,7 @@ export default function Home() {
                         channel: marketingChannel,
                         brand_rules: ["Be concise"],
                       }),
-                    })
+                    }).then(fetchRuns)
                   }
                   className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
                 >
@@ -354,12 +382,9 @@ export default function Home() {
             {tab === "feedback" && (
               <div className="space-y-4">
                 <SectionTitle title="Feedback" subtitle="Record human approval/denial with reasons." />
-                <input
-                  value={feedbackRunId}
-                  onChange={(e) => setFeedbackRunId(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-200 p-3 text-sm"
-                  placeholder="run_id"
-                />
+                <div className="text-xs text-zinc-500">
+                  Tip: select a run in Dashboard to auto‑load feedback.
+                </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <select
                     value={feedbackDecision}
@@ -384,55 +409,21 @@ export default function Home() {
                   placeholder="notes"
                 />
                 <button
-                  onClick={() =>
-                    apiFetch("/feedback", {
-                      method: "POST",
-                      body: JSON.stringify({
-                        run_id: feedbackRunId,
-                        workflow: "marketing",
-                        decision: feedbackDecision,
-                        reason_code: feedbackReason,
-                        notes: feedbackNotes,
-                      }),
-                    })
-                  }
-                  className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+                  onClick={postFeedback}
+                  disabled={!selectedRun}
+                  className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                 >
-                  Submit feedback
+                  Submit feedback for selected run
                 </button>
-                <button
-                  onClick={() => fetchFeedback(feedbackRunId)}
-                  className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium"
-                >
-                  Load feedback history
-                </button>
-                <div className="rounded-xl border border-zinc-200 p-3 text-xs text-zinc-700">
-                  {feedbackHistory.length === 0 ? (
-                    <div className="text-zinc-500">No feedback history loaded.</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {feedbackHistory.map((fb, idx) => (
-                        <div key={idx} className="rounded-lg border border-zinc-200 p-2">
-                          <div>
-                            <span className="font-semibold">{fb.decision}</span>{" "}
-                            <span className="text-zinc-500">({fb.reason_code || "no_reason"})</span>
-                          </div>
-                          <div className="text-zinc-500">{fb.notes}</div>
-                          <div className="text-[10px] text-zinc-400">{fb.created_at}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
             )}
           </motion.div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <SectionTitle title="Timeline" subtitle="Ordered audit events for the last selected run." />
+            <SectionTitle title="Timeline" subtitle="Audit events for the selected run." />
             <div className="mt-4 space-y-3 text-sm">
               {events.length === 0 ? (
-                <p className="text-zinc-500">No events loaded. Use “Events” on a run.</p>
+                <p className="text-zinc-500">Select a run to see its timeline.</p>
               ) : (
                 events.map((ev, idx) => (
                   <div key={idx} className="rounded-xl border border-zinc-200 p-3">
@@ -458,31 +449,30 @@ export default function Home() {
           </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <SectionTitle title="Output" subtitle={loading ? "Loading..." : "Latest response from the API"} />
-            <div className="mt-4">{output ? <JsonBlock data={output} /> : <p>No output yet.</p>}</div>
+            <SectionTitle title="Feedback history" subtitle="Feedback items for the selected run." />
+            <div className="mt-4 space-y-2 text-sm">
+              {feedbackHistory.length === 0 ? (
+                <p className="text-zinc-500">Select a run to see feedback history.</p>
+              ) : (
+                feedbackHistory.map((fb, idx) => (
+                  <div key={idx} className="rounded-lg border border-zinc-200 p-2">
+                    <div>
+                      <span className="font-semibold">{fb.decision}</span>{" "}
+                      <span className="text-zinc-500">({fb.reason_code || "no_reason"})</span>
+                    </div>
+                    <div className="text-zinc-500">{fb.notes}</div>
+                    <div className="text-[10px] text-zinc-400">{fb.created_at}</div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <SectionTitle title="Fetch by run_id" subtitle="Get full run or events for a specific run." />
-            <div className="mt-4 flex flex-col gap-3 md:flex-row">
-              <input
-                value={runIdLookup}
-                onChange={(e) => setRunIdLookup(e.target.value)}
-                className="flex-1 rounded-xl border border-zinc-200 p-3 text-sm"
-                placeholder="run_id"
-              />
-              <button
-                onClick={() => apiFetch(`/runs/${runIdLookup}`)}
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-              >
-                Get run
-              </button>
-              <button
-                onClick={() => apiFetch(`/runs/${runIdLookup}/events`)}
-                className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium"
-              >
-                Get events
-              </button>
+            <SectionTitle title="Output" subtitle={loading ? "Loading..." : "Latest response from the API"} />
+            <div className="mt-4">
+              {error && <p className="mb-2 text-sm text-red-600">Error: {error}</p>}
+              {output ? <JsonBlock data={output} /> : <p>No output yet.</p>}
             </div>
           </div>
         </section>
