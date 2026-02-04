@@ -20,12 +20,14 @@ class InvoiceRequest(BaseModel):
     document: Document
     email_context: Optional[EmailContext] = None
     metadata: Optional[Dict[str, Any]] = None
+    idempotency_key: Optional[str] = None
 
 
 class ContractRequest(BaseModel):
     document: Document
     counterparty: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    idempotency_key: Optional[str] = None
 
 
 class MarketingRequest(BaseModel):
@@ -34,6 +36,7 @@ class MarketingRequest(BaseModel):
     channel: str = Field(default="landing_page")
     brand_rules: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
+    idempotency_key: Optional[str] = None
 
 
 class AuditEvent(BaseModel):

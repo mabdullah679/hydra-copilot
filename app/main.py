@@ -6,7 +6,17 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 
-from .db import init_db, insert_event, insert_run, get_run, get_events, insert_feedback, get_feedback, utc_now
+from .db import (
+    init_db,
+    insert_event,
+    insert_run,
+    get_run,
+    get_events,
+    insert_feedback,
+    get_feedback,
+    get_run_by_idempotency,
+    utc_now,
+)
 from .schemas import (
     ContractRequest,
     InvoiceRequest,
@@ -35,6 +45,11 @@ def health() -> dict:
 
 
 def _submit_run(workflow: str, payload: dict) -> SubmitResponse:
+    idempotency_key = payload.get("idempotency_key")
+    if idempotency_key:
+        existing = get_run_by_idempotency(workflow, idempotency_key)
+        if existing:
+            return SubmitResponse(run_id=existing["run_id"], workflow=workflow, status=existing["status"])
     run_id = f"{workflow[:3]}_{uuid4().hex[:12]}"
     insert_run(run_id, workflow, "queued", payload)
     insert_event(run_id, utc_now(), "enqueue", "api", "allow", 1, None)

@@ -29,6 +29,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             workflow TEXT NOT NULL,
             status TEXT NOT NULL,
             request_json TEXT NOT NULL,
+            idempotency_key TEXT,
             result_json TEXT,
             audit_json TEXT,
             created_at TEXT NOT NULL,
@@ -89,12 +90,13 @@ def init_db() -> None:
 def insert_run(run_id: str, workflow: str, status: str, request: Dict[str, Any]) -> None:
     conn = get_conn()
     now = utc_now()
+    idempotency_key = request.get("idempotency_key")
     conn.execute(
         """
-        INSERT INTO runs (run_id, workflow, status, request_json, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO runs (run_id, workflow, status, request_json, idempotency_key, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (run_id, workflow, status, json.dumps(request), now, now),
+        (run_id, workflow, status, json.dumps(request), idempotency_key, now, now),
     )
     conn.commit()
     conn.close()
@@ -155,6 +157,18 @@ def insert_event(
 def get_run(run_id: str) -> Optional[Dict[str, Any]]:
     conn = get_conn()
     row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+    conn.close()
+    if not row:
+        return None
+    return dict(row)
+
+
+def get_run_by_idempotency(workflow: str, idempotency_key: str) -> Optional[Dict[str, Any]]:
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT * FROM runs WHERE workflow = ? AND idempotency_key = ? ORDER BY created_at DESC LIMIT 1",
+        (workflow, idempotency_key),
+    ).fetchone()
     conn.close()
     if not row:
         return None
