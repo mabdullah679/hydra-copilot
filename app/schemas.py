@@ -67,3 +67,16 @@ class RunResponse(BaseModel):
 class EventsResponse(BaseModel):
     run_id: str
     events: List[AuditEvent]
+
+
+class FeedbackRequest(BaseModel):
+    run_id: str
+    workflow: str
+    decision: str = Field(description="approved|denied|needs_changes")
+    reason_code: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class FeedbackResponse(BaseModel):
+    run_id: str
+    feedback: List[Dict[str, Any]]

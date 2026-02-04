@@ -51,6 +51,19 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_id TEXT NOT NULL,
+            workflow TEXT NOT NULL,
+            decision TEXT NOT NULL,
+            reason_code TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
     conn.commit()
 
 
@@ -161,3 +174,26 @@ def get_events(run_id: str) -> list[Dict[str, Any]]:
         ev.pop("meta_json", None)
         events.append(ev)
     return events
+
+
+def insert_feedback(run_id: str, workflow: str, decision: str, reason_code: str | None, notes: str | None) -> None:
+    conn = get_conn()
+    conn.execute(
+        """
+        INSERT INTO feedback (run_id, workflow, decision, reason_code, notes, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (run_id, workflow, decision, reason_code, notes, utc_now()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_feedback(run_id: str) -> list[Dict[str, Any]]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT run_id, workflow, decision, reason_code, notes, created_at FROM feedback WHERE run_id = ? ORDER BY id ASC",
+        (run_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]

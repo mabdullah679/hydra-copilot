@@ -6,12 +6,14 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 
-from .db import init_db, insert_event, insert_run, get_run, get_events, utc_now
+from .db import init_db, insert_event, insert_run, get_run, get_events, insert_feedback, get_feedback, utc_now
 from .schemas import (
     ContractRequest,
     InvoiceRequest,
     MarketingRequest,
     EventsResponse,
+    FeedbackRequest,
+    FeedbackResponse,
     RunResponse,
     SubmitResponse,
 )
@@ -83,3 +85,22 @@ def get_run_events(run_id: str) -> EventsResponse:
         raise HTTPException(status_code=404, detail="run_id not found")
     events = get_events(run_id)
     return EventsResponse(run_id=run_id, events=events)
+
+
+@app.post("/feedback", response_model=FeedbackResponse)
+def post_feedback(req: FeedbackRequest) -> FeedbackResponse:
+    run = get_run(req.run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="run_id not found")
+    insert_feedback(req.run_id, req.workflow, req.decision, req.reason_code, req.notes)
+    feedback = get_feedback(req.run_id)
+    return FeedbackResponse(run_id=req.run_id, feedback=feedback)
+
+
+@app.get("/feedback/{run_id}", response_model=FeedbackResponse)
+def get_feedback_for_run(run_id: str) -> FeedbackResponse:
+    run = get_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="run_id not found")
+    feedback = get_feedback(run_id)
+    return FeedbackResponse(run_id=run_id, feedback=feedback)
