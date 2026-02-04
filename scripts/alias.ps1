@@ -1,10 +1,9 @@
-. "$PSScriptRoot\lib.ps1"
-
 function global:hc {
   param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Args
   )
+  . "$PSScriptRoot\lib.ps1"
   $root = Get-RepoRoot
   & (Join-Path $root "scripts\hc.ps1") @Args
 }
