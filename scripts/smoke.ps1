@@ -65,21 +65,50 @@ function Smoke-Events {
   Invoke-RestMethod -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id + "/events") | ConvertTo-Json -Depth 6
 }
 
+function Smoke-Feedback {
+  $payload = @{
+    outline = "Launch message"
+    persona = "busy founder"
+    channel = "email"
+    brand_rules = @("Be concise")
+  } | ConvertTo-Json
+
+  $resp = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/workflows/marketing/submit `
+    -ContentType "application/json" `
+    -Body $payload
+  Write-Host "run_id:" $resp.run_id
+  Start-Sleep -Seconds 1
+
+  $fb = @{
+    run_id = $resp.run_id
+    workflow = "marketing"
+    decision = "approved"
+    reason_code = "meets_brand"
+    notes = "Looks good"
+  } | ConvertTo-Json
+
+  Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/feedback `
+    -ContentType "application/json" `
+    -Body $fb | ConvertTo-Json -Depth 6
+}
+
 :menu while ($true) {
   Write-Host "Smoke options:"
   Write-Host "  1) Marketing basic"
   Write-Host "  2) Invoice forced validation fail (ap-exceptions)"
   Write-Host "  3) Contract forced risks (legal-review)"
   Write-Host "  4) Events endpoint (marketing)"
-  Write-Host "  5) Exit"
+  Write-Host "  5) Feedback (approve marketing)"
+  Write-Host "  6) Exit"
 
-  $choice = Read-Host "Select an option (1-5)"
+  $choice = Read-Host "Select an option (1-6)"
   switch ($choice) {
     "1" { Smoke-Marketing }
     "2" { Smoke-Invoice-ForcedFail }
     "3" { Smoke-Contract-ForcedRisks }
     "4" { Smoke-Events }
-    "5" { break menu }
+    "5" { Smoke-Feedback }
+    "6" { break menu }
     default { Write-Host "Invalid option." }
   }
 }
