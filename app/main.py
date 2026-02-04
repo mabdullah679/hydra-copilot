@@ -92,6 +92,8 @@ def post_feedback(req: FeedbackRequest) -> FeedbackResponse:
     run = get_run(req.run_id)
     if not run:
         raise HTTPException(status_code=404, detail="run_id not found")
+    if req.workflow != run["workflow"]:
+        raise HTTPException(status_code=400, detail="workflow does not match run")
     insert_feedback(req.run_id, req.workflow, req.decision, req.reason_code, req.notes)
     feedback = get_feedback(req.run_id)
     return FeedbackResponse(run_id=req.run_id, feedback=feedback)

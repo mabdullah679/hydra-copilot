@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 
 from pydantic import BaseModel, Field
 
@@ -72,7 +72,7 @@ class EventsResponse(BaseModel):
 class FeedbackRequest(BaseModel):
     run_id: str
     workflow: str
-    decision: str = Field(description="approved|denied|needs_changes")
+    decision: Literal["approved", "denied", "needs_changes"]
     reason_code: Optional[str] = None
     notes: Optional[str] = None
 
