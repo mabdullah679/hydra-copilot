@@ -83,3 +83,7 @@ class FeedbackRequest(BaseModel):
 class FeedbackResponse(BaseModel):
     run_id: str
     feedback: List[Dict[str, Any]]
+
+
+class RunsListResponse(BaseModel):
+    runs: List[Dict[str, Any]]

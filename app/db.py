@@ -213,3 +213,13 @@ def get_feedback(run_id: str) -> list[Dict[str, Any]]:
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def list_runs(limit: int = 50) -> list[Dict[str, Any]]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT run_id, workflow, status, created_at, updated_at FROM runs ORDER BY created_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]

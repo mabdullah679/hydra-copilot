@@ -15,6 +15,7 @@ from .db import (
     insert_feedback,
     get_feedback,
     get_run_by_idempotency,
+    list_runs,
     utc_now,
 )
 from .schemas import (
@@ -25,6 +26,7 @@ from .schemas import (
     FeedbackRequest,
     FeedbackResponse,
     RunResponse,
+    RunsListResponse,
     SubmitResponse,
 )
 from .worker import run_workflow_task
@@ -91,6 +93,11 @@ def get_run_status(run_id: str) -> RunResponse:
         result=result,
         audit=audit,
     )
+
+
+@app.get("/runs", response_model=RunsListResponse)
+def list_recent_runs(limit: int = 50) -> RunsListResponse:
+    return RunsListResponse(runs=list_runs(limit))
 
 
 @app.get("/runs/{run_id}/events", response_model=EventsResponse)
