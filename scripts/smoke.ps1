@@ -65,7 +65,7 @@ function Smoke-Events {
   Invoke-RestMethod -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id + "/events") | ConvertTo-Json -Depth 6
 }
 
-while ($true) {
+:menu while ($true) {
   Write-Host "Smoke options:"
   Write-Host "  1) Marketing basic"
   Write-Host "  2) Invoice forced validation fail (ap-exceptions)"
@@ -79,7 +79,7 @@ while ($true) {
     "2" { Smoke-Invoice-ForcedFail }
     "3" { Smoke-Contract-ForcedRisks }
     "4" { Smoke-Events }
-    "5" { break }
+    "5" { break menu }
     default { Write-Host "Invalid option." }
   }
 }
