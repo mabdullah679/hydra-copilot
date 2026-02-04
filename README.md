@@ -31,11 +31,6 @@ From anywhere inside the repo:
 Starts Redis → API → worker, waits for readiness, then offers to run smoke test:
 - `.\scripts\boot.ps1`
 
-## Tonight deliverable (1–2 hours)
-- A written MVP spec (endpoints + schemas + step graphs)
-- A v0 policy model (abstain/escalate rules)
-- A clear “next coding session” plan (tickets + acceptance criteria)
-
 ## Guiding constraints
 - Prefer **zero paid APIs**.
 - **Cloud-friendly** CPU mode should still be useful.
