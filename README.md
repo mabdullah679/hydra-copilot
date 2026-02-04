@@ -1,15 +1,13 @@
 # Hydra Copilot
 
-Portfolio project: **AI Assisted Workflows (agentic-lite)** under one umbrella app.
+Hydra Copilot helps teams handle messy work faster and more safely. You give it documents or outlines, and it returns **drafts plus a clear audit trail** so a human can quickly review and approve.
 
-Elevator pitch: a production-minded workflow runner that turns messy inputs into **draft outputs + audit trails**, with **human approval + feedback** for continuous improvement.
+It currently supports three real-world workflows:
+- **Invoices** → extract key fields, validate totals, and route for approval
+- **Contracts** → extract important clauses, flag risks, and route to legal review
+- **Marketing** → turn an outline into publishable draft copy that follows brand rules
 
-Workflows:
-- Invoice → Approval
-- Contract → Reviewer
-- Marketing Outline → Publishable Pitch
-
-The goal is not to beat enterprise products; it’s to demonstrate you can ship an AI-enabled workflow system with production disciplines: **policies, auditability, evals, monitoring, feedback, and promotion/rollback**.
+Every result is **draft-only**, with reasons for any escalations, so you can trust the process and improve it over time.
 
 ## Start here
 - docs/README.md
