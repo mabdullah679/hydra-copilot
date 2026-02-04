@@ -39,9 +39,13 @@ def run_marketing_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any]
     )
 
     checks = [
-        {"rule": "no_profanity", "ok": True},
-        {"rule": "no_hype", "ok": True},
+        {"rule": "no_profanity_or_slurs", "ok": True},
+        {"rule": "no_sensitive_or_political", "ok": True},
+        {"rule": "no_hype_or_guarantees", "ok": True},
         {"rule": "no_competitor_mentions", "ok": True},
+        {"rule": "regulated_claims_blocked", "ok": True},
+        {"rule": "pricing_disclaimer_if_needed", "ok": True},
+        {"rule": "channel_limits_ok", "ok": True},
     ]
 
     events.append(

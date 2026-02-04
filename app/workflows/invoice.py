@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
 from ..config import INVOICE_MANAGER_THRESHOLD
@@ -22,6 +23,7 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
 
     extracted = {
         "vendor": "ACME Corp",
+        "invoice_number": None,
         "invoice_date": "2026-01-01",
         "due_date": "2026-02-01",
         "total": 1234.56,
@@ -40,10 +42,14 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
         }
     )
 
+    total_validator_ok = isinstance(extracted["total"], (int, float))
+    due_ok = datetime.fromisoformat(extracted["due_date"]) >= datetime.fromisoformat(extracted["invoice_date"])
+    total_matches_ok = abs(extracted["total"] - extracted["line_items_total"]) < 0.01
+
     validations = [
-        {"rule": "total_validator", "ok": True},
-        {"rule": "due_date_after_invoice_date", "ok": True},
-        {"rule": "total_matches_line_items", "ok": True},
+        {"rule": "total_validator", "ok": total_validator_ok},
+        {"rule": "due_date_after_invoice_date", "ok": due_ok},
+        {"rule": "total_matches_line_items", "ok": total_matches_ok},
     ]
 
     events.append(
@@ -76,6 +82,12 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
         }
     )
 
-    result = {"extracted": extracted, "validations": validations, "route": route}
+    invoice_key = f"{extracted['vendor']}|{extracted['invoice_date']}|{extracted['total']}"
+    result = {
+        "extracted": extracted,
+        "validations": validations,
+        "route": route,
+        "invoice_key": invoice_key,
+    }
     status = "needs_review"
     return status, result, events

@@ -43,6 +43,9 @@ def run_contract_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any],
     )
 
     risk_flags: List[Dict[str, Any]] = []
+    forced = (payload.get("metadata") or {}).get("force_risks") or []
+    for flag in forced:
+        risk_flags.append({"type": flag, "severity": "high"})
 
     events.append(
         {
