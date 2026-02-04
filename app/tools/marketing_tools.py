@@ -13,8 +13,8 @@ def generate_marketing_variants(outline: str, persona: str | None, channel: str)
     ]
 
 
-def run_brand_checks() -> List[Dict[str, Any]]:
-    return [
+def run_brand_checks(force_fail: bool = False) -> List[Dict[str, Any]]:
+    checks = [
         {"rule": "no_profanity_or_slurs", "ok": True},
         {"rule": "no_sensitive_or_political", "ok": True},
         {"rule": "no_hype_or_guarantees", "ok": True},
@@ -23,3 +23,6 @@ def run_brand_checks() -> List[Dict[str, Any]]:
         {"rule": "pricing_disclaimer_if_needed", "ok": True},
         {"rule": "channel_limits_ok", "ok": True},
     ]
+    if force_fail:
+        checks.append({"rule": "forced_fail", "ok": False})
+    return checks

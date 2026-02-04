@@ -37,7 +37,8 @@ def run_marketing_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any]
         }
     )
 
-    checks = run_brand_checks()
+    force_brand_fail = bool((payload.get("metadata") or {}).get("force_brand_fail"))
+    checks = run_brand_checks(force_fail=force_brand_fail)
 
     events.append(
         {

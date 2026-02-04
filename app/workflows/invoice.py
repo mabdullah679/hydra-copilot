@@ -23,7 +23,8 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
     )
 
     ocr_text = ocr_stub(payload.get("document", {}))
-    extracted = extract_invoice_fields(ocr_text, payload.get("metadata") or {})
+    metadata = payload.get("metadata") or {}
+    extracted = extract_invoice_fields(ocr_text, metadata)
 
     events.append(
         {
@@ -36,7 +37,7 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
         }
     )
 
-    validations, validation_failed = validate_invoice(extracted)
+    validations, validation_failed = validate_invoice(extracted, force_fail=bool(metadata.get("force_validation_fail")))
 
     events.append(
         {

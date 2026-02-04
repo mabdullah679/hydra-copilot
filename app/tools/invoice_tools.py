@@ -17,7 +17,7 @@ def extract_invoice_fields(ocr_text: str, metadata: Dict[str, Any]) -> Dict[str,
     }
 
 
-def validate_invoice(extracted: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], bool]:
+def validate_invoice(extracted: Dict[str, Any], force_fail: bool = False) -> Tuple[List[Dict[str, Any]], bool]:
     total_validator_ok = isinstance(extracted["total"], (int, float))
     due_ok = datetime.fromisoformat(extracted["due_date"]) >= datetime.fromisoformat(extracted["invoice_date"])
     total_matches_ok = abs(extracted["total"] - extracted["line_items_total"]) < 0.01
@@ -27,5 +27,7 @@ def validate_invoice(extracted: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], b
         {"rule": "due_date_after_invoice_date", "ok": due_ok},
         {"rule": "total_matches_line_items", "ok": total_matches_ok},
     ]
+    if force_fail:
+        validations.append({"rule": "forced_fail", "ok": False})
     failed = any(v["ok"] is False for v in validations)
     return validations, failed
