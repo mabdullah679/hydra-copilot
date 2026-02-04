@@ -1,9 +1,10 @@
-. "$PSScriptRoot\lib.ps1"
-
 param(
   [Parameter(Position = 0)]
   [string]$Command = "help"
 )
+
+$PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+. "$PSScriptRoot\lib.ps1"
 
 $root = Get-RepoRoot
 Set-Location $root
