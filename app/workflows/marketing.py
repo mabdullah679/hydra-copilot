@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Tuple
 
 from ..db import utc_now
 from ..tools.marketing_tools import generate_marketing_variants, run_brand_checks
+from ..utils import hash_json
 
 
 def run_marketing_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
@@ -17,6 +18,7 @@ def run_marketing_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any]
             "decision": "allow",
             "elapsed_ms": 1,
             "error": None,
+            "meta": {"inputs_hash": hash_json(payload)},
         }
     )
 
@@ -34,6 +36,7 @@ def run_marketing_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any]
             "decision": "allow",
             "elapsed_ms": 5,
             "error": None,
+            "meta": {"outputs_hash": hash_json({"variants": variants})},
         }
     )
 
@@ -48,6 +51,7 @@ def run_marketing_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any]
             "decision": "allow",
             "elapsed_ms": 2,
             "error": None,
+            "meta": {"outputs_hash": hash_json({"checks": checks})},
         }
     )
 

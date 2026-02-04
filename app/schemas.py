@@ -43,6 +43,7 @@ class AuditEvent(BaseModel):
     decision: Optional[str] = None
     elapsed_ms: Optional[int] = None
     error: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
 
 
 class Audit(BaseModel):

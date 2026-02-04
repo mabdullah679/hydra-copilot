@@ -149,8 +149,15 @@ def get_run(run_id: str) -> Optional[Dict[str, Any]]:
 def get_events(run_id: str) -> list[Dict[str, Any]]:
     conn = get_conn()
     rows = conn.execute(
-        "SELECT ts, step, tool, decision, elapsed_ms, error FROM events WHERE run_id = ? ORDER BY id ASC",
+        "SELECT ts, step, tool, decision, elapsed_ms, error, meta_json FROM events WHERE run_id = ? ORDER BY id ASC",
         (run_id,),
     ).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    events = []
+    for r in rows:
+        ev = dict(r)
+        if ev.get("meta_json"):
+            ev["meta"] = json.loads(ev["meta_json"])
+        ev.pop("meta_json", None)
+        events.append(ev)
+    return events

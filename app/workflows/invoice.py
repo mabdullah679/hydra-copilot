@@ -6,6 +6,7 @@ from ..config import INVOICE_MANAGER_THRESHOLD
 from ..db import utc_now
 from ..tools.invoice_tools import extract_invoice_fields, validate_invoice
 from ..tools.ocr_stub import ocr_stub
+from ..utils import hash_json
 
 
 def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
@@ -19,6 +20,7 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
             "decision": "allow",
             "elapsed_ms": 1,
             "error": None,
+            "meta": {"inputs_hash": hash_json(payload)},
         }
     )
 
@@ -34,6 +36,7 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
             "decision": "allow",
             "elapsed_ms": 5,
             "error": None,
+            "meta": {"outputs_hash": hash_json(extracted)},
         }
     )
 
@@ -47,6 +50,7 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
             "decision": "allow",
             "elapsed_ms": 2,
             "error": None,
+            "meta": {"outputs_hash": hash_json({"validations": validations})},
         }
     )
 
@@ -65,6 +69,7 @@ def run_invoice_workflow(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any], 
             "decision": "allow",
             "elapsed_ms": 1,
             "error": None,
+            "meta": {"reason_code": route["reason"]},
         }
     )
 

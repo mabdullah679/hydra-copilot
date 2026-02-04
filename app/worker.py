@@ -34,6 +34,7 @@ def run_workflow_task(run_id: str) -> None:
             decision=ev.get("decision"),
             elapsed_ms=ev.get("elapsed_ms"),
             error=ev.get("error"),
+            meta=ev.get("meta"),
         )
 
     update_run(run_id, status=status, result=result, audit=audit)
