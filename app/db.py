@@ -72,6 +72,8 @@ def get_conn() -> sqlite3.Connection:
     ensure_dirs()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA busy_timeout=3000;")
     if not _initialized:
         _ensure_schema(conn)
         _initialized = True
