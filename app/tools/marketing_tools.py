@@ -1,16 +1,13 @@
 from __future__ import annotations
 
+import textwrap
 from typing import Any, Dict, List
 
 
 def generate_marketing_variants(outline: str, persona: str | None, channel: str) -> List[Dict[str, Any]]:
-    return [
-        {
-            "title": "Draft headline",
-            "body": "Draft body copy aligned to brand rules.",
-            "cta": "Learn more",
-        }
-    ]
+    persona_text = f" for {persona}" if persona else ""
+    body = textwrap.fill(f"{outline}{persona_text}. Draft copy aligned to brand rules.", width=72)
+    return [{"title": f"{outline} – Draft", "body": body, "cta": "Learn more"}]
 
 
 def run_brand_checks(force_fail: bool = False) -> List[Dict[str, Any]]:

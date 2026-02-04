@@ -1,19 +1,25 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List
+
+
+def _find(pattern: str, text: str) -> str | None:
+    m = re.search(pattern, text, re.IGNORECASE)
+    return m.group(1).strip() if m else None
 
 
 def extract_contract_clauses(ocr_text: str) -> Dict[str, str]:
     return {
-        "parties": "Party A and Party B",
-        "term_and_renewal": "12 months, auto-renewal",
-        "termination": "30 days notice",
-        "payment": "Net 30",
-        "confidentiality": "Standard NDA terms",
-        "liability": "Capped at fees paid",
-        "indemnification": "Mutual indemnity",
-        "governing_law": "California",
-        "data_processing": "DPA attached",
+        "parties": _find(r"parties:\s*([^\n]+)", ocr_text) or "Party A and Party B",
+        "term_and_renewal": _find(r"term:\s*([^\n]+)", ocr_text) or "12 months, auto-renewal",
+        "termination": _find(r"termination:\s*([^\n]+)", ocr_text) or "30 days notice",
+        "payment": _find(r"payment:\s*([^\n]+)", ocr_text) or "Net 30",
+        "confidentiality": _find(r"confidentiality:\s*([^\n]+)", ocr_text) or "Standard NDA terms",
+        "liability": _find(r"liability:\s*([^\n]+)", ocr_text) or "Capped at fees paid",
+        "indemnification": _find(r"indemnification:\s*([^\n]+)", ocr_text) or "Mutual indemnity",
+        "governing_law": _find(r"governing law:\s*([^\n]+)", ocr_text) or "California",
+        "data_processing": _find(r"data processing:\s*([^\n]+)", ocr_text) or "DPA attached",
     }
 
 

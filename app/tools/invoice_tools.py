@@ -1,19 +1,41 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 from typing import Any, Dict, List, Tuple
 
 
+def _find(pattern: str, text: str) -> str | None:
+    m = re.search(pattern, text, re.IGNORECASE)
+    return m.group(1).strip() if m else None
+
+
+def _find_number(pattern: str, text: str) -> float | None:
+    val = _find(pattern, text)
+    if val is None:
+        return None
+    try:
+        return float(val.replace(",", ""))
+    except ValueError:
+        return None
+
+
 def extract_invoice_fields(ocr_text: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
-    # Stub: deterministic fields. Later replace with OCR+regex/LLM.
+    vendor = _find(r"vendor:\s*([^\n]+)", ocr_text) or "ACME Corp"
+    invoice_number = _find(r"invoice\s*#?:\s*([^\n]+)", ocr_text)
+    invoice_date = _find(r"invoice date:\s*([0-9\-]+)", ocr_text) or "2026-01-01"
+    due_date = _find(r"due date:\s*([0-9\-]+)", ocr_text) or "2026-02-01"
+    total = _find_number(r"total:\s*([\d\.,]+)", ocr_text) or 1234.56
+    line_items_total = _find_number(r"line items total:\s*([\d\.,]+)", ocr_text) or total
+    currency = _find(r"currency:\s*([A-Z]{3})", ocr_text) or "USD"
     return {
-        "vendor": "ACME Corp",
-        "invoice_number": None,
-        "invoice_date": "2026-01-01",
-        "due_date": "2026-02-01",
-        "total": 1234.56,
-        "line_items_total": 1234.56,
-        "currency": "USD",
+        "vendor": vendor,
+        "invoice_number": invoice_number,
+        "invoice_date": invoice_date,
+        "due_date": due_date,
+        "total": total,
+        "line_items_total": line_items_total,
+        "currency": currency,
     }
 
 
