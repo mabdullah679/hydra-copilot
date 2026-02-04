@@ -2,6 +2,24 @@
 $root = Get-RepoRoot
 Set-Location $root
 
+function Invoke-Api {
+  param(
+    [string]$Method,
+    [string]$Uri,
+    [string]$Body = $null
+  )
+  try {
+    if ($Body) {
+      return Invoke-RestMethod -Method $Method -Uri $Uri -ContentType "application/json" -Body $Body
+    }
+    return Invoke-RestMethod -Method $Method -Uri $Uri
+  } catch {
+    Write-Host "Request failed: $Method $Uri" -ForegroundColor Red
+    Write-Host $_
+    return $null
+  }
+}
+
 function Smoke-Marketing {
   $payload = @{
     outline = "Launch message"
@@ -10,12 +28,11 @@ function Smoke-Marketing {
     brand_rules = @("Be concise")
   } | ConvertTo-Json
 
-  $resp = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/workflows/marketing/submit `
-    -ContentType "application/json" `
-    -Body $payload
+  $resp = Invoke-Api -Method Post -Uri http://127.0.0.1:8000/workflows/marketing/submit -Body $payload
+  if (-not $resp) { return }
   Write-Host "run_id:" $resp.run_id
   Start-Sleep -Seconds 1
-  Invoke-RestMethod -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id) | ConvertTo-Json -Depth 6
+  Invoke-Api -Method Get -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id) | ConvertTo-Json -Depth 6
 }
 
 function Smoke-Invoice-ForcedFail {
@@ -27,12 +44,11 @@ function Smoke-Invoice-ForcedFail {
     metadata = @{ force_validation_fail = $true }
   } | ConvertTo-Json
 
-  $resp = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/workflows/invoice/submit `
-    -ContentType "application/json" `
-    -Body $payload
+  $resp = Invoke-Api -Method Post -Uri http://127.0.0.1:8000/workflows/invoice/submit -Body $payload
+  if (-not $resp) { return }
   Write-Host "run_id:" $resp.run_id
   Start-Sleep -Seconds 1
-  Invoke-RestMethod -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id) | ConvertTo-Json -Depth 6
+  Invoke-Api -Method Get -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id) | ConvertTo-Json -Depth 6
 }
 
 function Smoke-Contract-ForcedRisks {
@@ -41,12 +57,11 @@ function Smoke-Contract-ForcedRisks {
     metadata = @{ force_risks = @("liability_cap_missing","unlimited_indemnity") }
   } | ConvertTo-Json
 
-  $resp = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/workflows/contract/submit `
-    -ContentType "application/json" `
-    -Body $payload
+  $resp = Invoke-Api -Method Post -Uri http://127.0.0.1:8000/workflows/contract/submit -Body $payload
+  if (-not $resp) { return }
   Write-Host "run_id:" $resp.run_id
   Start-Sleep -Seconds 1
-  Invoke-RestMethod -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id) | ConvertTo-Json -Depth 6
+  Invoke-Api -Method Get -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id) | ConvertTo-Json -Depth 6
 }
 
 function Smoke-Events {
@@ -57,12 +72,11 @@ function Smoke-Events {
     brand_rules = @("Be concise")
   } | ConvertTo-Json
 
-  $resp = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/workflows/marketing/submit `
-    -ContentType "application/json" `
-    -Body $payload
+  $resp = Invoke-Api -Method Post -Uri http://127.0.0.1:8000/workflows/marketing/submit -Body $payload
+  if (-not $resp) { return }
   Write-Host "run_id:" $resp.run_id
   Start-Sleep -Seconds 1
-  Invoke-RestMethod -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id + "/events") | ConvertTo-Json -Depth 6
+  Invoke-Api -Method Get -Uri ("http://127.0.0.1:8000/runs/" + $resp.run_id + "/events") | ConvertTo-Json -Depth 6
 }
 
 function Smoke-Feedback {
@@ -73,9 +87,8 @@ function Smoke-Feedback {
     brand_rules = @("Be concise")
   } | ConvertTo-Json
 
-  $resp = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/workflows/marketing/submit `
-    -ContentType "application/json" `
-    -Body $payload
+  $resp = Invoke-Api -Method Post -Uri http://127.0.0.1:8000/workflows/marketing/submit -Body $payload
+  if (-not $resp) { return }
   Write-Host "run_id:" $resp.run_id
   Start-Sleep -Seconds 1
 
@@ -87,9 +100,7 @@ function Smoke-Feedback {
     notes = "Looks good"
   } | ConvertTo-Json
 
-  Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/feedback `
-    -ContentType "application/json" `
-    -Body $fb | ConvertTo-Json -Depth 6
+  Invoke-Api -Method Post -Uri http://127.0.0.1:8000/feedback -Body $fb | ConvertTo-Json -Depth 6
 }
 
 :menu while ($true) {
