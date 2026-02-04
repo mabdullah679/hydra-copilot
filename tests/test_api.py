@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 def test_submit_and_get_run(tmp_path, monkeypatch):
     monkeypatch.setenv("HYDRA_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("CELERY_ALWAYS_EAGER", "1")
 
     from app.main import app
 

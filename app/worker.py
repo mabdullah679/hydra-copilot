@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from celery import Celery
 
-from .config import REDIS_URL
+from .config import REDIS_URL, CELERY_ALWAYS_EAGER
 import json
 
 from .db import get_run, insert_event, update_run, utc_now
 from .workflows.runner import run_workflow
 
 celery_app = Celery("hydra_copilot", broker=REDIS_URL, backend=REDIS_URL)
+celery_app.conf.task_always_eager = CELERY_ALWAYS_EAGER
 
 
 @celery_app.task(name="hydra.run_workflow")

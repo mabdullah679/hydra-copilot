@@ -11,3 +11,6 @@ BLOB_DIR = Path(os.getenv("HYDRA_BLOB_DIR", DATA_DIR / "blob"))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 INVOICE_MANAGER_THRESHOLD = float(os.getenv("INVOICE_MANAGER_THRESHOLD", "5000"))
+
+# Test-friendly Celery behavior
+CELERY_ALWAYS_EAGER = os.getenv("CELERY_ALWAYS_EAGER", "0") == "1"
