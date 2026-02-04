@@ -18,6 +18,17 @@ The goal is not to beat enterprise products; it’s to demonstrate you can ship 
 - docs/TONIGHT.md
 - tickets/TICKETS.md
 
+## Local dev commands (PowerShell)
+From anywhere inside the repo:
+1) Set aliases for this session:
+   - `.\scripts\alias.ps1` (creates `hc` + `hydra`)
+2) Use commands:
+   - `hc redis`   (start Redis via Docker)
+   - `hc dev`     (start API)
+   - `hc worker`  (start Celery worker, Windows-safe)
+   - `hc smoke`   (submit sample request)
+   - `hc test`    (run tests)
+
 ## Tonight deliverable (1–2 hours)
 - A written MVP spec (endpoints + schemas + step graphs)
 - A v0 policy model (abstain/escalate rules)
