@@ -66,6 +66,16 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         """
     )
     conn.commit()
+    _apply_migrations(conn)
+
+
+def _apply_migrations(conn: sqlite3.Connection) -> None:
+    cur = conn.cursor()
+    # runs.idempotency_key
+    cols = [r[1] for r in cur.execute("PRAGMA table_info(runs)").fetchall()]
+    if "idempotency_key" not in cols:
+        cur.execute("ALTER TABLE runs ADD COLUMN idempotency_key TEXT")
+    conn.commit()
 
 
 def get_conn() -> sqlite3.Connection:
