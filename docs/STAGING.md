@@ -26,6 +26,11 @@ This document defines what we will actually run in staging, and what remains pla
 - Timeline events render with hashes + reason codes.
 - Feedback submitted and visible in UI.
 
+## Frontend review needed
+- UI/UX polish pass still required (visual hierarchy, spacing, states).
+- Verify each tab/button has clear user guidance and no dead paths.
+- Validate responsiveness (mobile/tablet) and empty-state messaging.
+
 ## Dev note: OCR (planned in dev)
 - OCR is the text extraction step for PDFs/images.
 - Plan: add a local OCR integration (e.g., Tesseract) as an optional tool behind a feature flag.
