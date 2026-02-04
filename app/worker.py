@@ -21,20 +21,25 @@ def run_workflow_task(run_id: str) -> None:
     payload = json.loads(run["request_json"])
 
     insert_event(run_id, utc_now(), "dispatch", "celery", "allow", 1, None)
+    update_run(run_id, status="processing", result=None, audit=None)
 
-    status, result, events = run_workflow(workflow, payload)
-    audit = {"events": events}
+    try:
+        status, result, events = run_workflow(workflow, payload)
+        audit = {"events": events}
 
-    for ev in events:
-        insert_event(
-            run_id=run_id,
-            ts=ev["ts"],
-            step=ev["step"],
-            tool=ev.get("tool"),
-            decision=ev.get("decision"),
-            elapsed_ms=ev.get("elapsed_ms"),
-            error=ev.get("error"),
-            meta=ev.get("meta"),
-        )
+        for ev in events:
+            insert_event(
+                run_id=run_id,
+                ts=ev["ts"],
+                step=ev["step"],
+                tool=ev.get("tool"),
+                decision=ev.get("decision"),
+                elapsed_ms=ev.get("elapsed_ms"),
+                error=ev.get("error"),
+                meta=ev.get("meta"),
+            )
 
-    update_run(run_id, status=status, result=result, audit=audit)
+        update_run(run_id, status=status, result=result, audit=audit)
+    except Exception as exc:
+        insert_event(run_id, utc_now(), "workflow_error", "worker", "deny", 0, str(exc))
+        update_run(run_id, status="failed", result=None, audit=None)
