@@ -30,6 +30,7 @@ This document defines what we will actually run in staging, and what remains pla
 - UI/UX polish pass still required (visual hierarchy, spacing, states).
 - Verify each tab/button has clear user guidance and no dead paths.
 - Validate responsiveness (mobile/tablet) and empty-state messaging.
+- **Reminder**: run full E2E on the frontend (all tabs + workflows + feedback) before staging rollout.
 
 ## Dev note: OCR (planned in dev)
 - OCR is the text extraction step for PDFs/images.
