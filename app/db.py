@@ -133,6 +133,20 @@ def update_run(run_id: str, status: str, result: Optional[Dict[str, Any]], audit
     conn.close()
 
 
+def update_run_status(run_id: str, status: str) -> None:
+    conn = get_conn()
+    conn.execute(
+        """
+        UPDATE runs
+        SET status = ?, updated_at = ?
+        WHERE run_id = ?
+        """,
+        (status, utc_now(), run_id),
+    )
+    conn.commit()
+    conn.close()
+
+
 def insert_event(
     run_id: str,
     ts: str,

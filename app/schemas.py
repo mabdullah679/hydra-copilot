@@ -63,6 +63,7 @@ class RunResponse(BaseModel):
     run_id: str
     workflow: str
     status: str
+    request: Optional[Dict[str, Any]] = None
     result: Optional[Dict[str, Any]] = None
     audit: Optional[Audit] = None
 

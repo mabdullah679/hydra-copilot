@@ -17,6 +17,7 @@ from .db import (
     get_feedback,
     get_run_by_idempotency,
     list_runs,
+    update_run_status,
     utc_now,
 )
 from .schemas import (
@@ -92,6 +93,7 @@ def get_run_status(run_id: str) -> RunResponse:
     if not run:
         raise HTTPException(status_code=404, detail="run_id not found")
 
+    request = json.loads(run["request_json"]) if run.get("request_json") else None
     result = json.loads(run["result_json"]) if run.get("result_json") else None
     audit = json.loads(run["audit_json"]) if run.get("audit_json") else None
 
@@ -99,6 +101,7 @@ def get_run_status(run_id: str) -> RunResponse:
         run_id=run["run_id"],
         workflow=run["workflow"],
         status=run["status"],
+        request=request,
         result=result,
         audit=audit,
     )
@@ -126,6 +129,8 @@ def post_feedback(req: FeedbackRequest) -> FeedbackResponse:
     if req.workflow != run["workflow"]:
         raise HTTPException(status_code=400, detail="workflow does not match run")
     insert_feedback(req.run_id, req.workflow, req.decision, req.reason_code, req.notes)
+    update_run_status(req.run_id, req.decision)
+    insert_event(req.run_id, utc_now(), "human_feedback", "api", req.decision, 1, None, {"reason_code": req.reason_code})
     feedback = get_feedback(req.run_id)
     return FeedbackResponse(run_id=req.run_id, feedback=feedback)
 
